@@ -16,10 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from home.views import ForecastAPI
+from home.views import ForecastAPI,DownloadWeatherCSV
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', admin.site.urls),
     path('api/forecast/',ForecastAPI.as_view()),
+    path('api/download-csv',DownloadWeatherCSV.as_view())
 ]
