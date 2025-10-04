@@ -20,7 +20,6 @@ from home.views import ForecastAPI,DownloadWeatherCSV
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', admin.site.urls),
     path('api/forecast/',ForecastAPI.as_view()),
     path('api/download-csv',DownloadWeatherCSV.as_view())
 ]
