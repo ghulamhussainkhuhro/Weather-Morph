@@ -75,17 +75,28 @@ WSGI_APPLICATION = 'weather_nasa_apps.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+import os
+import dj_database_url # Import the package
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'weather_app',
-        'USER' : 'postgres',
-        'PASSWORD' : 'admin',
-        'HOST' : 'localhost',
-        'PORT' : '5432'
+# ... your other settings ...
+
+# Check for the DATABASE_URL environment variable and configure accordingly
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'weather_app',
+            'USER' : 'postgres',
+            'PASSWORD' : 'admin',
+            'HOST' : 'localhost',
+            'PORT' : '5432'
+        }
+    }
 
 
 # Password validation
