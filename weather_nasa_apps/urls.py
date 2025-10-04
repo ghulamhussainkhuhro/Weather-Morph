@@ -20,5 +20,6 @@ from home.views import ForecastAPI
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', admin.site.urls),
     path('api/forecast/',ForecastAPI.as_view()),
 ]
