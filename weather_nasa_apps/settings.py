@@ -27,6 +27,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+  "https://your-flutter-web-domain.pages.dev",
+  "https://my-weather-app.web.app",
+  "*"
+]
 
 # Application definition
 

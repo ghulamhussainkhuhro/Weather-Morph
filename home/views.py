@@ -7,6 +7,9 @@ from home.utility import analyze_climatology, DEFAULT_CONDITIONS,get_status
 import requests
 import os
 import json
+from rest_framework.permissions import AllowAny
+import csv
+from django.http import HttpResponse
 
 AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
@@ -118,11 +121,13 @@ class ForecastAPI(APIView):
                 raw_payload=azure_payload,
                 summary=azure_summary
             )
+            query_id = str(query.id)
 
             # 5) Return 7-day forecast + Azure summary
             return Response({
                 "status": True,
                 "message": "7-day forecast generated",
+                "query_id": query_id, 
                 "daily_forecasts": forecasts,
                 "summary": azure_summary
             })
@@ -150,3 +155,25 @@ class ForecastAPI(APIView):
                 })
             except UserQuery.DoesNotExist:
                 return Response({"status": False, "message": "Query not found"})
+            
+class DownloadWeatherCSV(APIView):
+    permission_classes = [AllowAny]  # adjust if needed
+
+    def get(self, request, q):
+        query_id = request.query_params.get("query_id")
+        if not query_id:
+            return Response({"status": False, "message": "query_id is required"})
+
+        try:
+            query = UserQuery.objects.get(id=query_id)
+            forecasts = query.daily_forecasts.all()
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename=forecast_{query_id}.csv'
+            writer = csv.writer(response)
+            writer.writerow(['date','title','value','status','probability'])
+            for f in forecasts:
+                writer.writerow([f.date, f.title, f.value, f.status, f.probability])
+            return response
+        except UserQuery.DoesNotExist:
+                return Response({"status": False, "message": "Query not found"})
+            
