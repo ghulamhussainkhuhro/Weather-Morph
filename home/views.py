@@ -10,7 +10,9 @@ import json
 from rest_framework.permissions import AllowAny
 import csv
 from django.http import HttpResponse
+from dotenv import load_dotenv
 
+load_dotenv()
 AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
 AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
