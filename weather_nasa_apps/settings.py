@@ -82,11 +82,9 @@ WSGI_APPLICATION = 'weather_nasa_apps.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 import os
-import dj_database_url # Import the package
+import dj_database_url 
 
-# ... your other settings ...
 
-# Check for the DATABASE_URL environment variable and configure accordingly
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     DATABASES = {

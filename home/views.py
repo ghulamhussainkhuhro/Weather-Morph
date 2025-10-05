@@ -18,11 +18,6 @@ AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
 AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 AZURE_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 
-
-    
-# ----------------------------
-# Forecast API
-# ----------------------------
 class ForecastAPI(APIView):
     def post(self, request):
         try:
@@ -30,12 +25,9 @@ class ForecastAPI(APIView):
             lon = float(request.data.get("lon"))
             start_date_str = request.data.get("date")
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-
-            # 1) Create Location & UserQuery
             location = Location.objects.create(lat=lat, lon=lon)
             query = UserQuery.objects.create(location=location, start_date=start_date)
 
-            # 2) Loop 7 days to compute forecast
             forecasts = []
             for i in range(7):
                 day = query.start_date + timedelta(days=i)
@@ -44,13 +36,10 @@ class ForecastAPI(APIView):
                     start_year=2001, end_year=datetime.now().year,
                     window_days=7, conditions=DEFAULT_CONDITIONS
                 )
-                print(result["probabilities"])
-
                 for r in result["probabilities"]:
-                    # Use value if available, else 0
                     value = r.get("threshold_used", 0)
                     status = get_status(r["label"], value, r.get("prob", 0))
-                    probability = r.get("prob")  # might be None
+                    probability = r.get("prob")  
                     status = r.get("status") or "unknown"
                     unit = r.get("unit", "")
                     print(f"DEBUG: Unit value = '{unit}'") 
@@ -82,7 +71,7 @@ class ForecastAPI(APIView):
                     forecasts.append(DailyForecastSerializer(df).data)
                     variable_reading, created = VariableReading.objects.get_or_create(
                         query=query,
-                        variable=variable_name,  # Use unique variable name
+                        variable=variable_name,
                         date=day,
                         defaults={
                             'value': float(value) if value is not None else 0.0,
@@ -90,7 +79,6 @@ class ForecastAPI(APIView):
                         }
                     )
 
-            # 3) Send to Azure (replace YOUR_AZURE_URL & headers)
             try:
                 azure_url = f"{AZURE_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT}/chat/completions?api-version={AZURE_API_VERSION}"
 
@@ -98,8 +86,6 @@ class ForecastAPI(APIView):
                     "Content-Type": "application/json",
                     "api-key": AZURE_KEY
                 }
-
-                # Prepare messages for chat completion
                 messages = [
                     {"role": "system", "content": "You are a weather summary assistant."},
                     {"role": "user", "content": f"Here are the 7-day forecasts:\n{json.dumps(forecasts)}\nPlease provide a JSON summary."}
@@ -113,19 +99,14 @@ class ForecastAPI(APIView):
                 azure_response = requests.post(azure_url, headers=azure_headers, json=azure_payload, timeout=60)
                 azure_response.raise_for_status()
                 azure_summary = azure_response.json()
-
             except Exception as e:
                 azure_summary = {"error": f"Azure request failed: {str(e)}"}
-
-            # 4) Save Azure summary in QueryResult
             QueryResult.objects.create(
                 query=query,
                 raw_payload=azure_payload,
                 summary=azure_summary
             )
             query_id = str(query.id)
-
-            # 5) Return 7-day forecast + Azure summary
             return Response({
                 "status": True,
                 "message": "7-day forecast generated",
@@ -133,19 +114,15 @@ class ForecastAPI(APIView):
                 "daily_forecasts": forecasts,
                 "summary": azure_summary
             })
-
         except Exception as e:
             return Response({
                 "status": False,
                 "message": f"Error generating forecast: {str(e)}"
             })
-
-    # Optional GET to retrieve existing forecasts by query ID
     def get(self, request):
             query_id = request.query_params.get("query_id")
             if not query_id:
                 return Response({"status": False, "message": "query_id is required"})
-
             try:
                 query = UserQuery.objects.get(id=query_id)
                 forecasts = DailyForecastSerializer(query.daily_forecasts.all(), many=True).data
@@ -159,13 +136,11 @@ class ForecastAPI(APIView):
                 return Response({"status": False, "message": "Query not found"})
             
 class DownloadWeatherCSV(APIView):
-    permission_classes = [AllowAny]  # adjust if needed
-
+    permission_classes = [AllowAny]  
     def get(self, request, q):
         query_id = request.query_params.get("query_id")
         if not query_id:
             return Response({"status": False, "message": "query_id is required"})
-
         try:
             query = UserQuery.objects.get(id=query_id)
             forecasts = query.daily_forecasts.all()
